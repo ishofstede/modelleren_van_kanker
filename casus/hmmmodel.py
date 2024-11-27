@@ -1,58 +1,69 @@
 import numpy as np
+from itertools import product
+from math import log, exp
+from hmmlearn.hmm import CategoricalHMM
 
 class HiddenMarkovModel:
     def __init__(self, n_components, n_features):
-        """
-        Initialiseert het Hidden Markov Model.
-
-        Parameters:
-        n_components: aantal toestanden
-        n_features: aantal mogelijke emissies
-        """
         self.n_components = n_components
         self.n_features = n_features
-        self.startprob_ = np.ones(n_components) / n_components  # Uniforme verdeling standaard
-        self.transmat_ = np.ones((n_components, n_components)) / n_components  # Uniforme overgangswaarschijnlijkheden
-        self.emissionprob_ = np.ones((n_components, n_features)) / n_features  # Uniforme emissiekansen
+        self.startprob_ = np.ones(n_components) / n_components  # Uniforme verdeling
+        self.transmat_ = np.ones((n_components, n_components)) / n_components  # Uniforme overgang
+        self.emissionprob_ = np.ones((n_components, n_features)) / n_features  # Uniforme emissie
 
-    def __str__(self):
-        """
-        Stringrepresentatie van het model.
-        """
-        return (f"HiddenMarkovModel(n_components={self.n_components}, n_features={self.n_features})\n"
-                f"Start probabilities:\n{self.startprob_}\n"
-                f"Transition matrix:\n{self.transmat_}\n"
-                f"Emission probabilities:\n{self.emissionprob_}")
+    def score(self, emissions, state_sequence):
+        log_prob = 0.0
+        log_prob += log(self.startprob_[state_sequence[0]])  # start state
+        for t in range(1, len(state_sequence)):
+            prev_state = state_sequence[t-1]
+            current_state = state_sequence[t]
+            log_prob += log(self.transmat_[prev_state, current_state])  # transition
+            log_prob += log(self.emissionprob_[current_state, emissions[t]])  # emission
+        return log_prob
 
-    def __repr__(self):
-        """
-        Officiële representatie van het model.
-        """
-        return self.__str__()
+    def calculate_log_prob_all_states(self, emissions):
+        prob_sum = 0.0
+        for state_sequence in product(range(self.n_components), repeat=len(emissions)):  
+            prob_sum += exp(self.score(emissions, state_sequence)) 
+        log_prob = log(prob_sum)
+        p_value = exp(log_prob)  # Bereken de kans p van de log-kans
+        return log_prob, p_value
 
-    def sample(self, n_samples):
-        """
-        Genereert toestanden en waarnemingen.
 
-        Parameters:
-        n_samples: aantal samples dat gegenereerd moet worden.
+def hmmlearn_comparison(emissions):
+    # Aantal toestanden (n_components) en emissies (n_features)
+    n_components = 3
+    n_features = 4
 
-        Returns:
-        (emissions, states): tuple van emissies en toestanden
-        """
-        states = []
-        emissions = []
+    # Initialisatie van een CategoricalHMM-model met dezelfde parameters
+    model_hmmlearn = CategoricalHMM(n_components=n_components, n_iter=1000)
 
-        # Start met een beginstaat op basis van de startprob_
-        current_state = np.random.choice(self.n_components, p=self.startprob_)
-        for _ in range(n_samples):
-            states.append(current_state)
+    # Set de transitie- en emissiematrices (gebruik uniforme waarden voor vergelijking)
+    model_hmmlearn.startprob_ = np.ones(n_components) / n_components
+    model_hmmlearn.transmat_ = np.ones((n_components, n_components)) / n_components
+    model_hmmlearn.emissionprob_ = np.ones((n_components, n_features)) / n_features
 
-            # Kies een emissie gebaseerd op de huidige toestand
-            emission = np.random.choice(self.n_features, p=self.emissionprob_[current_state])
-            emissions.append(emission)
+    # Zet de emissies om in de juiste vorm voor hmmlearn
+    emissions_hmmlearn = np.array(emissions).reshape(-1, 1)
 
-            # Kies de volgende toestand
-            current_state = np.random.choice(self.n_components, p=self.transmat_[current_state])
+    # Bereken de log-kans en de kans (score)
+    log_prob_hmmlearn = model_hmmlearn.score(emissions_hmmlearn)
+    p_value_hmmlearn = exp(log_prob_hmmlearn)  # Om de kans in plaats van log-kans te berekenen
 
-        return np.array(emissions), np.array(states)
+    return log_prob_hmmlearn, p_value_hmmlearn
+
+# Testdata
+emissions = [1, 2, 0, 3, 2]
+
+# Bereken de log-kans voor  model
+model = HiddenMarkovModel(n_components=3, n_features=4)
+log_prob, p_value = model.calculate_log_prob_all_states(emissions)
+
+# Print de resultaten van module
+print(f"Eigen module:   ln(p) = {log_prob:.3f}   (p = {p_value:.3e})")
+
+# Bereken de log-kans voor hmmlearn
+log_prob_hmmlearn, p_value_hmmlearn = hmmlearn_comparison(emissions)
+
+# Print
+print(f"hmmlearn:       ln(p) = {log_prob_hmmlearn:.3f}   (p = {p_value_hmmlearn:.3e})")
