@@ -1,10 +1,11 @@
-from sklearn.preprocessing import OneHotEncoder
-import numpy as np
+import gensim
 
-line = np.array('altijd november altijd regen altijd dit lege hart altijd'.split())
-enc = OneHotEncoder()
-data = enc.fit_transform(line.reshape(-1, 1))
+model_path = "../BioWordVec_PubMed_MIMICIII_d200.vec.bin"
+model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
+#kijken of het model goed is geladen
+len(model.key_to_index) #16545452
 
-#gebruik one-hot encoding om te bepalen hoeveel unieke woorden in je corpus zitten
-#geef elk woord unieke waarde
-#om woorden context te geven gebruik je embeddings, daar zijn getrainde modellen voor
+#het model positioneert de woorden in een 200-dimensionale vectorruimte
+s = model['man']
+type(s) #ndarray
+s.shape #(200,)
