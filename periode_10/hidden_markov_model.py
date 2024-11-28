@@ -47,23 +47,43 @@ class HiddenMarkovModel:
             # De current states met de random kansen 
             current_state = np.random.choice(self.n_components, p=self.transmat_[current_state])
             states.append(current_state)
-        
         return emissions, states[:-1]  # Laatste toestand verwijderen om gelijke lengte te hebben
-    def score(self, X, state_sequence):
-        if not all(0 <= s < self.n_components for s in state_sequence):
-            raise ValueError(f"state_sequence bevat ongeldige waarden: {state_sequence}")
-        if not all(0 <= x < self.n_features for x in X):
-            raise ValueError(f"X bevat ongeldige waarden: {X}")
+    
+    def forward_algorithm(self, X):
+        T = len(X)  # Length of the observation sequence
+        fwd = np.zeros((T, self.n_components))
         
-        log_prob = log(self.startprob_[state_sequence[0]])  # Startkans
-        for t in range(1, len(state_sequence)):
-            log_prob += log(self.transmat_[state_sequence[t-1], state_sequence[t]])  # Overgangskans
+        # Initialize the forward matrix for the first time step
+        fwd[0, :] = self.startprob_ * self.emissionprob_[:, X[0]]
         
-        for t in range(len(state_sequence)):
-            emission_prob = self.emissionprob_[state_sequence[t], X[t]]
-            if emission_prob <= 0:
-                raise ValueError(f"Ongeldige emissiekans: {emission_prob} bij t={t}, state={state_sequence[t]}, emission={X[t]}")
-            log_prob += log(emission_prob)  # Emissiekans
+        # Recursively fill in the forward matrix
+        for t in range(1, T):
+            for s in range(self.n_components):
+                fwd[t, s] = np.sum(fwd[t-1, :] * self.transmat_[:, s]) * self.emissionprob_[s, X[t]]
         
+        # Return the log-likelihood by summing over all states at the last time step
+        log_prob = np.log(np.sum(fwd[T-1, :]))
         return log_prob
+    
+    def score(self, X, state_sequence = None):
+        if state_sequence is None:
+            log_prob = self.forward_algorithm(X)  # Use the forward algorithm
+        else:
+            # Implement from Part II: Calculate log-likelihood of emissions and states
+            if not all(0 <= s < self.n_components for s in state_sequence):
+                raise ValueError(f"state_sequence bevat ongeldige waarden: {state_sequence}")
+            if not all(0 <= x < self.n_features for x in X):
+                raise ValueError(f"X bevat ongeldige waarden: {X}")
+            
+            log_prob = log(self.startprob_[state_sequence[0]])  # Startkans
+            for t in range(1, len(state_sequence)):
+                log_prob += log(self.transmat_[state_sequence[t-1], state_sequence[t]])  # Overgangskans
+            
+            for t in range(len(state_sequence)):
+                emission_prob = self.emissionprob_[state_sequence[t], X[t]]
+                if emission_prob <= 0:
+                    raise ValueError(f"Ongeldige emissiekans: {emission_prob} bij t={t}, state={state_sequence[t]}, emission={X[t]}")
+                log_prob += log(emission_prob)  # Emissiekans
+            
+            return log_prob
 
