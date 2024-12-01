@@ -1,2 +1,11 @@
 casus_b/BioWordVec_PubMed_MIMICIII_d200.vec.bin
 .idea
+casus_a/__pycache__/hidden_markov_model.cpython-312.pyc
+casus_a/__pycache__/hmmmodel.cpython-312.pyc
+casus_a/__pycache__/hmmmodel.cpython-312.pyc
+casus_b/__pycache__/NGramModel.cpython-312.pyc
+casus_a/__pycache__/hmmmodel.cpython-312.pyc
+casus_a/__pycache__/hmmmodel.cpython-312.pyc
+casus_a/__pycache__/hmmmodel.cpython-312.pyc
+*.pyc
+/casus_a/__pycache__
