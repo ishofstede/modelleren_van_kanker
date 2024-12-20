@@ -1,0 +1,5 @@
+train: c:/Users/isabe/Documents/Hanze/jaar_3_new/kw2/modelleren_van_kanker/casus_d/data/dataset/images/train
+val: c:/Users/isabe/Documents/Hanze/jaar_3_new/kw2/modelleren_van_kanker/casus_d/data/dataset/images/val
+
+nc: 1
+names: ['tumor']
